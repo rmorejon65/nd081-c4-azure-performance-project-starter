@@ -1,0 +1,17 @@
+I created the screenshots based on the rubrics and I put them in its correspondent screenshot subfolder:
+
+For the Set Up Application Insight - The screenshots have the prefix api_
+For the Analyzing Performance Metrics the prefix apm_
+For the VM Autoscaling the prefix vma
+For the Automate Resolution of Performance Issues the prefix apr_
+
+For the output of the Horizontal Pod Autoscaler I executed the command:
+
+kubectl get pods 
+
+so, I could compare the results from before the horizontal autoscaler was triggered with the process load. I put that screenshot. I could user the graphic 
+in Azure option but I like the command client ... :)
+
+Thanks ...
+
+
