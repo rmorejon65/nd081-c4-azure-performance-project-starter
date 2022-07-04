@@ -5,13 +5,170 @@ For the Analyzing Performance Metrics the prefix apm_
 For the VM Autoscaling the prefix vma
 For the Automate Resolution of Performance Issues the prefix apr_
 
-For the output of the Horizontal Pod Autoscaler I executed the command:
+I'm adding the Criterias exposed at the Rubric with it correspondent screenshot file:
 
-kubectl get pods 
+A). Create appropriate Azure resources to utilize Application Insights and Azure Log Analytics.
 
-so, I could compare the results from before the horizontal autoscaler was triggered with the process load. I put that screenshot. I could user the graphic 
-in Azure option but I like the command client ... :)
+Azure Log Analytics Workspace and Azure Application Insights resources are created.
 
-Thanks ...
+As evidence, provide a screenshot of the resource group containing your running resources.
 
+1) File : api_resource_group in Folder: application_insights
+
+B). Application Insights monitoring is enabled on the VMSS.
+
+As evidence, provide a screenshot of the metrics from the VM Scale Set instance. This should show the following information:
+
+CPU %
+Available Memory %
+Information about the Disk
+Information about the bytes sent and received.
+
+Here I've include the following screenshots:
+
+2) File: api_vmss_insights_all_metrics in Folder: application_insights
+   Additionally I included the following metrics screenshots in Folder : application_insights
+   Memory Available: File :api_vmss_metric_avail_mem
+                     File: api_vmss_metric_bytes_received
+                     File :api_vmss_metric_bytes_sent
+                     File :api_vmss_metric_cpu
+                     
+ C.) Enable Application Insights on the AKS cluster created from the provided script create-cluster.sh.
+
+As evidence, provide a screenshot showing Application Insights is enabled on the AKS cluster.           
+    3) File: api_AKS_Insights in Folder: kubernetes-cluster
+ 
+ D.) Create an Azure Alert in Azure Monitor. This alert should trigger when the number of pods increases beyond a certain threshold.
+
+As evidence, provide a screenshot of the Azure Alert and email sent when the alert is triggered.
+    4)File: api_aks_rule_triggered in Folder: kubernetes-cluster -> Summary of the Alert triggered
+    5)File: api_aks_alert_rule_emai in Folder: kubernetes-cluster -> Email sent 
+    
+ E.) Create a horizontal pod autoscaler and cause load on the container.
+
+As evidence, provide screenshots showing:
+
+The output of the Horizontal Pod Autoscaler, showing an increase in the number of pods.
+  6)File: api_aks_before_after_load_autoscaler_horizontal in Folder: kubernetes-cluster -> Here I'm using the command kubectl get pods before the execution of
+   the load and the same command kubectl get pods after the execution of the load.
+The Application Insights metrics which show the increase in the number of pods.
+  7)File: api_aks_metrics_load in Folder: kubernetes-cluster -> Here I'm showing the Insights , and we can see how after the load , the CPU percentage surpasses the
+  50%, the number of pods begin to growth.
+   Also I've included the files 
+   8)File: api_aks_pods_after in Folder: kubernetes-cluster -> Here we can see the new containers for the azure-vote-front pod , that is the one with the definition
+   of the hpa autoscaler.
+The email you received from the alert when the pod count increased.
+   9)File: api_aks_alert_rule_email in Folder: kubernetes-cluster
+   
+ F.) In the provided main.py of the application:
+
+F.I )Import and reference the correct libraries for Application Insights
+In the main.py I've included the following lines for the libraries :
+from opencensus.ext.azure.log_exporter import AzureLogHandler
+from opencensus.ext.azure.log_exporter import AzureEventHandler
+from opencensus.ext.azure import metrics_exporter
+from opencensus.stats import aggregation as aggregation_module
+from opencensus.stats import measure as measure_module
+from opencensus.stats import stats as stats_module
+from opencensus.stats import view as view_module
+from opencensus.tags import tag_map as tag_map_module
+from opencensus.trace import config_integration
+from opencensus.ext.azure.trace_exporter import AzureExporter
+from opencensus.trace.samplers import ProbabilitySampler
+from opencensus.trace.tracer import Tracer
+from opencensus.ext.flask.flask_middleware import FlaskMiddleware
+
+F. II) Add code to reference the Application Insights Instrumentation key. The objects that will use this key include:
+exporter
+  exporter = metrics_exporter.new_metrics_exporter(
+  enable_standard_metrics=True,
+  connection_string='InstrumentationKey=85cf6bf8-7e4b-4931-90ea-b0b2fc265823')
+  view_manager.register_exporter(exporter)
+
+tracer
+  tracer = Tracer(
+   exporter=AzureExporter(
+       connection_string='InstrumentationKey=85cf6bf8-7e4b-4931-90ea-b0b2fc265823'),
+   sampler=ProbabilitySampler(rate=1.0),
+  )
+
+flask middleware
+  middleware = FlaskMiddleware(
+   app,
+   exporter=AzureExporter(connection_string="InstrumentationKey=85cf6bf8-7e4b-4931-90ea-b0b2fc265823"),
+   sampler=ProbabilitySampler(rate=1.0)
+  )
+logger
+  logger = logging.getLogger(__name__)
+  handler = AzureLogHandler(connection_string='InstrumentationKey=85cf6bf8-7e4b-4931-90ea-b0b2fc265823')
+  handler.setFormatter(logging.Formatter('%(traceId)s %(spanId)s %(message)s'))
+  logger.addHandler(handler)
+  # Logging custom Events 
+  logger.addHandler(AzureEventHandler(connection_string='InstrumentationKey=85cf6bf8-7e4b-4931-90ea-b0b2fc265823'))
+  # Set the logging level
+  logger.setLevel(logging.INFO)
+  
+Also for the other TODOS
+        # TODO: use tracer object to trace cat vote
+        with tracer.span(name="Cats Vote") as span:
+          print("Cats Vote")
+        # TODO: use tracer object to trace dog vote
+        with tracer.span(name="Dogs Vote") as span:
+         print("Dogs Vote")
+        # TODO: use logger object to log cat vote
+        logger.info('Cats Vote', extra=properties)      
+        # TODO: use logger object to log dog vote
+        logger.info('Dogs Vote', extra=properties)            
+ The last 2 TODOS
+ # TODO: Use the statement below when running locally
+    #app.run() 
+    # TODO: Use the statement below before deployment to VMSS
+    app.run(host='0.0.0.0', threaded=True, debug=True) # remote
+    
+ G.) As evidence, provide screenshots of:
+
+Application Insight Events that show the results of clicking vote for each Dogs & Cats
+10.) File: apm_application_insight_events In Folder application_insights
+The output of the traces query in Azure Log Analytics
+11.) File: apm_traces_query_result In Folder application_insights
+The chart created from the output of the traces query
+12.) File: apm_traces_query_chart in Folder application_insights
+        
+References to each of these objects should be found in the def index() function.
+
+H.) Create an auto-scaling rule for a VMSS.
+
+As evidence, provide a screenshot showing the conditions set for the auto scaling rule. This can be found in the Scaling item in the VM Scale Set.
+13.) File: vma_autoscaling_rule_metrics In folder autoscaling-vmss
+
+I.) Trigger the VM Scale Set auto scale rule.
+
+As evidence, provide the following screenshots:
+
+The Activity log of the VM scale set that shows it scaled up, including a timestamp.
+14.) File :vma_activity_log in Folder autoscaling-vmss
+The new instances being created.
+15.) File : vma_new_instances_created in Folder autoscaling-vmss
+The metrics showing the load increasing, then decreasing once scaled up, including a timestamp.
+16.) File : vma_vmss_insights_cpu_util in Folder autoscaling-vmss
+
+J.) Azure Automation Account and RunBook resources are created.
+
+As evidence, provide a screenshot of your resource group containing your running resources.
+17.) File: arpi_resource_group_running_resources In Folder runbook
+
+K.) Configure an Azure Alert in Azure Monitor to trigger the RunBook.
+
+As evidence, provide a screenshot of the configuration.
+18.) File: arpi_alert_configuration In Folder runbook
+
+L.) Trigger the Azure Alert. The RunBook should execute and resolve the issue.
+
+As evidence, provide the following screenshots:
+
+Email showing the alert was triggered
+19.) File : arpi_email_alert_triggered In Folder runbook
+Metrics or other evidence showing the RunBook executed and resolved the issue.
+20.) File : arpi_email_alert_resolved in folder runbook
+21.) File : arpi_runbook_executed in Folder runbook
 
